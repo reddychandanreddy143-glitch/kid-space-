@@ -409,31 +409,6 @@
             height: 100%;
         }
 
-        /* Music Toggle Button Styling */
-        #musicToggleButton {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%; /* Make it round */
-            background-color: #6A5ACD; /* Purple color */
-            color: white;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 30; /* Ensure it's on top */
-            border: none; /* Remove default button border */
-            transition: background-color 0.3s ease;
-        }
-
-        #musicToggleButton:hover {
-            background-color: #836FFF; /* Lighter purple on hover */
-        }
-
         /* Back to Home Button Styling */
         .back-to-home-button {
             padding: 10px 20px;
@@ -542,9 +517,6 @@
     </div>
 
     <div id="gameContainer">
-        <!-- Music Toggle Button -->
-        <button id="musicToggleButton">🔊</button>
-
         <!-- Main Menu -->
         <div id="mainMenu">
             <h2>Welcome to Kids Space!</h2>
@@ -626,7 +598,6 @@
         const playFruitsButton = document.getElementById('playFruitsButton');
         const playColorsButton = document.getElementById('playColorsButton');
         const playVegetablesButton = document.getElementById('playVegetablesButton'); // New button reference
-        const musicToggleButton = document.getElementById('musicToggleButton');
         const backgroundArt = document.getElementById('backgroundArt');
 
         const animalGameScreen = document.getElementById('animalGameScreen');
@@ -674,60 +645,24 @@
         const giftBox = document.getElementById('giftBox');
         const giftBoxText = document.getElementById('giftBoxText');
 
-        // Tone.js Setup for background music
+        // Tone.js Setup for background music (all music-related code is now commented out or removed)
         const synth = new Tone.Synth().toDestination();
-        // Updated melody for background music
-        const melody = [
-            { note: "C4", time: "0:0", duration: "8n" },
-            { note: "E4", time: "0:1", duration: "8n" },
-            { note: "G4", time: "0:2", duration: "8n" },
-            { note: "C5", time: "0:3", duration: "8n" },
-            { note: "A4", time: "0:4", duration: "8n" },
-            { note: "G4", time: "0:5", duration: "8n" },
-            { note: "E4", time: "0:6", duration: "8n" },
-            { note: "C4", time: "0:7", duration: "8n" }
-        ];
-
-        const musicPart = new Tone.Part((time, value) => {
-            synth.triggerAttackRelease(value.note, value.duration, time);
-        }, melody);
-
-        musicPart.loop = true;
-        musicPart.loopEnd = "1m"; // 1 measure, which is 8 eighth notes at default tempo
-        
-        // Define normal and boosted volume levels
-        const NORMAL_MUSIC_VOLUME = -15; // Quieter for background
-        const BOOSTED_MUSIC_VOLUME = -5; // Louder for celebration
-        synth.volume.value = NORMAL_MUSIC_VOLUME; // Initial volume
-
-        // Tone.js for gift box arrival sound (now plays a short chord)
         const giftBoxSynth = new Tone.Synth().toDestination();
-        giftBoxSynth.volume.value = -5; // Increased volume for effect
 
         async function playGiftBoxSound() {
-            if (Tone.context.state !== 'running') {
-                try {
-                    await Tone.start();
-                    console.log("Tone.js audio context started/resumed for gift box.");
-                } catch (e) {
-                    console.error("Failed to start Tone.js audio context for gift box:", e);
-                    return;
-                }
-            }
-            // Temporarily boost background music volume
-            synth.volume.rampTo(BOOSTED_MUSIC_VOLUME, 0.5); // Ramp up over 0.5 seconds
-
-            // Play a short, cheerful chord
-            giftBoxSynth.triggerAttackRelease("C5", "8n", Tone.now());
-            giftBoxSynth.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
-            giftBoxSynth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-            console.log("Gift box sound (chord) triggered.");
-        }
-
-        // Function to reset music volume after gift box event
-        function resetMusicVolume() {
-            synth.volume.rampTo(NORMAL_MUSIC_VOLUME, 1); // Ramp down over 1 second
-            console.log("Background music volume reset.");
+             if (Tone.context.state !== 'running') {
+                 try {
+                     await Tone.start();
+                     console.log("Tone.js audio context started/resumed for gift box.");
+                 } catch (e) {
+                     console.error("Failed to start Tone.js audio context for gift box:", e);
+                     return;
+                 }
+             }
+             giftBoxSynth.triggerAttackRelease("C5", "8n", Tone.now());
+             giftBoxSynth.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
+             giftBoxSynth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+             console.log("Gift box sound (chord) triggered.");
         }
 
 
@@ -812,8 +747,7 @@
         let score = 0;
         let shuffledItems = [];
         let giftBoxActive = false;
-        let backgroundMusicEnabled = false; // Initial state: music off
-
+        
         // Function to apply random colors to each letter of a title
         function colorizeTitle(element, text) {
             element.innerHTML = '';
@@ -823,37 +757,6 @@
                 span.className = 'letter';
                 span.style.color = titleColors[Math.floor(Math.random() * titleColors.length)];
                 element.appendChild(span);
-            }
-        }
-
-        // Function to toggle background music (now uses Tone.js)
-        async function toggleBackgroundMusic() {
-            // Ensure audio context is resumed or started on user gesture
-            if (Tone.context.state !== 'running') {
-                try {
-                    await Tone.start();
-                    console.log("Tone.js audio context started/resumed.");
-                } catch (e) {
-                    console.error("Failed to start Tone.js audio context:", e);
-                    getMessageDisplay().textContent = "Music could not start. Please click the speaker icon again!";
-                    getMessageDisplay().style.display = 'inline-block';
-                    setTimeout(() => getMessageDisplay().style.display = 'none', 3000);
-                    return; // Exit if context fails to start
-                }
-            }
-
-            if (Tone.Transport.state === 'stopped' || Tone.Transport.state === 'paused') {
-                Tone.Transport.start(); // Ensure transport is running
-                musicPart.start(0); // Start the Tone.js part from the beginning
-                musicToggleButton.textContent = '🔊';
-                backgroundMusicEnabled = true;
-                console.log("Music playing (Tone.js).");
-            } else {
-                musicPart.stop(); // Stop the Tone.js part
-                Tone.Transport.stop(); // Also stop the transport when music is off
-                musicToggleButton.textContent = '🔇';
-                backgroundMusicEnabled = false;
-                console.log("Music paused (Tone.js).");
             }
         }
 
@@ -1030,7 +933,6 @@
                 giftBoxText.style.display = 'none'; // Hide the text again
                 giftBoxActive = false;
                 loadNewItem();
-                resetMusicVolume(); // Reset music volume after gift box is opened
             }, 1000);
         }
 
@@ -1067,7 +969,7 @@
                         giftBoxText.textContent = 'Click to open!'; // Set initial text for gift box
                         giftBoxText.style.display = 'block'; // Show the text
                         giftBoxActive = true;
-                        playGiftBoxSound(); // Play sound and boost music when gift box appears
+                        playGiftBoxSound(); // Play sound when gift box appears
                         resetMessageDisplayStyling(); // Clear congrats message and reset style
                         console.log("Gift box shown after congratulations.");
                     }, 1500); // Display "Congratulations!" for 1.5 seconds
@@ -1093,9 +995,7 @@
                 // Display generic hint message and then generate options
                 messageDisplay.textContent = `Not quite! Pick the correct name:`;
                 messageDisplay.classList.add('hint-active');
-                // messageDisplay.style.display = 'none'; // NEW: Hide message display to reveal options
                 
-                // getInputElement().value = ''; // REMOVED: Keep user's input visible
                 getInputElement().disabled = true; // Disable input when options are shown
                 getSubmitButton().style.display = 'none'; // Hide submit button when options are shown
                 
@@ -1163,11 +1063,6 @@
             colorGameScreen.style.display = 'none';
             vegetableGameScreen.style.display = 'none'; // Hide vegetable game screen
             mainMenu.style.display = 'flex';
-            musicPart.stop(); // Stop Tone.js music when returning to main menu
-            Tone.Transport.stop(); // Also stop the transport when music is off
-            musicToggleButton.textContent = '🔇';
-            backgroundMusicEnabled = false;
-            console.log("Returned to main menu, music paused.");
             backgroundArt.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #A7D9F0 50%, #90EE90 50%, #B2EBF2 100%)'; // Reset background to default gradient
             
             // Reset message display styling and clear options for all screens when returning to menu
@@ -1202,12 +1097,11 @@
             submitFruitButton.style.display = 'inline-block';
             colorInput.disabled = false;
             submitColorButton.style.display = 'inline-block';
-            vegetableInput.disabled = false; // New: Re-enable vegetable input
-            submitVegetableButton.style.display = 'inline-block'; // New: Show vegetable submit button
-            console.log("Back to menu: Inputs enabled, submit buttons visible, options cleared for all screens.");
+            vegetableInput.disabled = false; // New
+            submitVegetableButton.style.display = 'inline-block'; // New
         }
 
-        // Helper function to reset styling for a specific message display element
+        // New helper function to reset styling for a specific element
         function resetMessageDisplayStylingForElement(element) {
             element.classList.remove('hint-active', 'message-highlight-celebrate');
             element.style.backgroundColor = '';
@@ -1215,166 +1109,113 @@
             element.style.boxShadow = '';
             element.style.color = '#FF6F61';
             element.style.textShadow = '';
-            element.style.fontSize = '1.5em';
-            element.style.padding = '8px 15px';
-            element.style.marginTop = '10px';
-            element.style.marginBottom = '15px';
-            element.style.display = 'inline-block'; // Set to inline-block by default
+            element.style.fontSize = '';
+            element.style.padding = '';
+            element.style.marginTop = '';
+            element.style.marginBottom = '';
+            element.style.display = '';
         }
 
-
-        // Game Initialization Function
-        async function startGame(gameType) { // Make it async as Tone.start() is async
-            currentPlayingGame = gameType;
-            mainMenu.style.display = 'none';
-
-            // Ensure audio context is running on user interaction
-            if (Tone.context.state !== 'running') {
-                try {
-                    await Tone.start();
-                    console.log("Tone.js audio context started/resumed by game start.");
-                } catch (e) {
-                    console.error("Failed to start Tone.js audio context on game start:", e);
-                    // Optionally, inform the user that audio might not play
-                }
-            }
-
-            // Attempt to play music when game starts, if not already playing
-            if (!backgroundMusicEnabled) {
-                Tone.Transport.start(); // Ensure transport is running
-                musicPart.start(0);
-                musicToggleButton.textContent = '🔊';
-                backgroundMusicEnabled = true;
-                console.log("Music playing (Tone.js).");
-            }
-
-            // Clear inputs and options for all games before starting a new one
-            animalInput.value = '';
-            fruitInput.value = '';
-            colorInput.value = '';
-            vegetableInput.value = ''; // New: Clear vegetable input
-            clearOptions(); 
-
-            // Reset input and submit button states for all games when starting a new game
-            animalInput.disabled = false;
-            submitAnimalButton.style.display = 'inline-block';
-            fruitInput.disabled = false;
-            submitFruitButton.style.display = 'inline-block';
-            colorInput.disabled = false;
-            submitColorButton.style.display = 'inline-block';
-            vegetableInput.disabled = false; // New: Enable vegetable input
-            submitVegetableButton.style.display = 'inline-block'; // New: Show vegetable submit button
-
-            // Ensure message display is hidden when starting a new game
-            messageDisplayAnimal.style.display = 'none';
-            messageDisplayFruit.style.display = 'none';
-            messageDisplayColor.style.display = 'none';
-            messageDisplayVegetable.style.display = 'none'; // New: Hide vegetable message display
-
-
-            if (gameType === 'animals') {
-                animalGameScreen.style.display = 'flex';
-                fruitGameScreen.style.display = 'none';
-                colorGameScreen.style.display = 'none';
-                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
-                currentItems = animals;
-                animalInput.setAttribute('placeholder', 'Type animal name here...');
-                colorizeTitle(animalGameTitle, "Find the Animal Name!");
-                console.log("Started Animal Game. currentPlayingGame:", currentPlayingGame);
-            } else if (gameType === 'fruits') {
-                animalGameScreen.style.display = 'none';
-                fruitGameScreen.style.display = 'flex';
-                colorGameScreen.style.display = 'none';
-                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
-                currentItems = fruits;
-                fruitInput.setAttribute('placeholder', 'Type fruit name here...');
-                colorizeTitle(fruitGameTitle, "Find the Fruit Name!");
-                console.log("Started Fruit Game. currentPlayingGame:", currentPlayingGame);
-            } else if (gameType === 'colors') {
-                animalGameScreen.style.display = 'none';
-                fruitGameScreen.style.display = 'none';
-                colorGameScreen.style.display = 'flex';
-                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
-                currentItems = colors;
-                colorInput.setAttribute('placeholder', 'Type color name here...');
-                colorizeTitle(colorGameTitle, "Find the Color Name!");
-                console.log("Started Color Game. currentPlayingGame:", currentPlayingGame);
-            } else if (gameType === 'vegetables') { // New Vegetables Game logic
-                animalGameScreen.style.display = 'none';
-                fruitGameScreen.style.display = 'none';
-                colorGameScreen.style.display = 'none';
-                vegetableGameScreen.style.display = 'flex'; // Show vegetable screen
-                currentItems = vegetables;
-                vegetableInput.setAttribute('placeholder', 'Type vegetable name here...');
-                colorizeTitle(vegetableGameTitle, "Find the Vegetable Name!");
-                console.log("Started Vegetable Game. currentPlayingGame:", currentPlayingGame);
-            }
-            
-            score = 0;
-            currentItemIndex = 0;
+        // Add event listeners for the game buttons
+        playAnimalsButton.addEventListener('click', () => {
+            currentPlayingGame = 'animals';
+            currentItems = animals;
             shuffleArray(currentItems);
             shuffledItems = [...currentItems];
+            currentItemIndex = 0;
+            score = 0;
+            mainMenu.style.display = 'none';
+            animalGameScreen.style.display = 'flex';
+            colorizeTitle(animalGameTitle, "Find the Animal!");
             loadNewItem();
-            console.log("Game started: Input enabled, submit button visible, options cleared.");
-        }
+            animalInput.focus();
+        });
 
-        // Event Listeners
-        playAnimalsButton.addEventListener('click', () => startGame('animals'));
-        playFruitsButton.addEventListener('click', () => startGame('fruits'));
-        playColorsButton.addEventListener('click', () => startGame('colors'));
-        playVegetablesButton.addEventListener('click', () => startGame('vegetables')); // New event listener for Vegetables game
-        musicToggleButton.addEventListener('click', toggleBackgroundMusic);
+        playFruitsButton.addEventListener('click', () => {
+            currentPlayingGame = 'fruits';
+            currentItems = fruits;
+            shuffleArray(currentItems);
+            shuffledItems = [...currentItems];
+            currentItemIndex = 0;
+            score = 0;
+            mainMenu.style.display = 'none';
+            fruitGameScreen.style.display = 'flex';
+            colorizeTitle(fruitGameTitle, "Find the Fruit!");
+            loadNewItem();
+            fruitInput.focus();
+        });
+
+        playColorsButton.addEventListener('click', () => {
+            currentPlayingGame = 'colors';
+            currentItems = colors;
+            shuffleArray(currentItems);
+            shuffledItems = [...currentItems];
+            currentItemIndex = 0;
+            score = 0;
+            mainMenu.style.display = 'none';
+            colorGameScreen.style.display = 'flex';
+            colorizeTitle(colorGameTitle, "Find the Color!");
+            loadNewItem();
+            colorInput.focus();
+        });
+
+        // New event listener for the Vegetables game
+        playVegetablesButton.addEventListener('click', () => {
+            currentPlayingGame = 'vegetables';
+            currentItems = vegetables;
+            shuffleArray(currentItems);
+            shuffledItems = [...currentItems];
+            currentItemIndex = 0;
+            score = 0;
+            mainMenu.style.display = 'none';
+            vegetableGameScreen.style.display = 'flex';
+            colorizeTitle(vegetableGameTitle, "Find the Vegetable!");
+            loadNewItem();
+            vegetableInput.focus();
+        });
+
+        // Event listeners for the "Submit" and "Back to Home" buttons
         submitAnimalButton.addEventListener('click', checkAnswer);
-        submitFruitButton.addEventListener('click', checkAnswer);
-        submitColorButton.addEventListener('click', checkAnswer);
-        submitVegetableButton.addEventListener('click', checkAnswer); // New event listener for Vegetable submit
-        
-        // Event listeners for the new "Back to Home" buttons
-        backToHomeAnimalButton.addEventListener('click', backToMainMenu);
-        backToHomeFruitButton.addEventListener('click', backToMainMenu);
-        backToHomeColorButton.addEventListener('click', backToMainMenu);
-        backToHomeVegetableButton.addEventListener('click', backToMainMenu); // New event listener for Vegetable back to home
-
-
-        document.addEventListener('keypress', function(event) {
+        animalInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
-                // Only allow Enter key to submit if the text input is active AND the submit button is visible
-                // (i.e., not in multiple-choice mode)
-                if ((document.activeElement === animalInput && getSubmitButton() === submitAnimalButton && submitAnimalButton.style.display !== 'none') ||
-                    (document.activeElement === fruitInput && getSubmitButton() === submitFruitButton && submitFruitButton.style.display !== 'none') ||
-                    (document.activeElement === colorInput && getSubmitButton() === submitColorButton && submitColorButton.style.display !== 'none') ||
-                    (document.activeElement === vegetableInput && getSubmitButton() === submitVegetableButton && submitVegetableButton.style.display !== 'none')) { // New: Check for vegetable input
-                    checkAnswer();
-                }
+                checkAnswer();
             }
         });
+        backToHomeAnimalButton.addEventListener('click', backToMainMenu);
+
+        submitFruitButton.addEventListener('click', checkAnswer);
+        fruitInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        backToHomeFruitButton.addEventListener('click', backToMainMenu);
+
+        submitColorButton.addEventListener('click', checkAnswer);
+        colorInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        backToHomeColorButton.addEventListener('click', backToMainMenu);
+
+        // New event listeners for Vegetable game
+        submitVegetableButton.addEventListener('click', checkAnswer);
+        vegetableInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        backToHomeVegetableButton.addEventListener('click', backToMainMenu);
+
 
         giftBox.addEventListener('click', openGiftBox);
 
-        // Initial setup
+
         window.onload = function() {
-            console.log("Window loaded. Initializing game.");
-            mainMenu.style.display = 'flex';
-            animalGameScreen.style.display = 'none';
-            fruitGameScreen.style.display = 'none';
-            colorGameScreen.style.display = 'none';
-            vegetableGameScreen.style.display = 'none'; // Ensure vegetable game screen is hidden on load
-            musicToggleButton.textContent = '🔇'; // Music off by default
-            backgroundMusicEnabled = false; // Set initial state
-            backgroundArt.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #A7D9F0 50%, #90EE90 50%, #B2EBF2 100%)'; // Default background on load
-
-            resetMessageDisplayStylingForElement(messageDisplayAnimal);
-            messageDisplayAnimal.style.display = 'none'; // Ensure hidden on initial load
-            resetMessageDisplayStylingForElement(messageDisplayFruit);
-            messageDisplayFruit.style.display = 'none'; // Ensure hidden on initial load
-            resetMessageDisplayStylingForElement(messageDisplayColor);
-            messageDisplayColor.style.display = 'none'; // Ensure hidden on initial load
-            resetMessageDisplayStylingForElement(messageDisplayVegetable); // New: Reset vegetable message display
-            messageDisplayVegetable.style.display = 'none'; // New: Ensure hidden on initial load
-
-            clearOptions(); // Ensure options are clear and hidden on initial load
-            console.log("Initial setup complete.");
+            colorizeTitle(document.querySelector('#mainMenu h2'), "Welcome to Kids Space!");
         };
+
     </script>
 </body>
 </html>
