@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids Space</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Bubblegum+Sans&display=swap" rel="stylesheet">
+    <!-- Tone.js library for web audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* General styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            position: relative; /* Needed for positioning background elements */
+        }
+
+        /* New Background Styling */
+        #backgroundArt {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Default background - will be dynamically changed by JS */
+            background: linear-gradient(to bottom, #87CEEB 0%, #A7D9F0 50%, #90EE90 50%, #B2EBF2 100%);
+            transition: background 1s ease-in-out; /* Smooth transition for background changes */
+            z-index: 1; /* Behind the game container */
+            overflow: hidden; /* Hide overflowing background elements */
+        }
+
+        /* Children SVGs - positioned absolutely within #backgroundArt */
+        #backgroundArt .child-boy {
+            position: absolute;
+            bottom: 5%;
+            left: 10%;
+            width: 100px;
+            height: 100px;
+            z-index: 2;
+        }
+        #backgroundArt .child-girl {
+            position: absolute;
+            bottom: 5%;
+            right: 10%;
+            width: 100px;
+            height: 100px;
+            z-index: 2;
+        }
+
+        /* Background animal/fruit elements - scattered and scaled */
+        #backgroundArt .bg-emoji {
+            position: absolute;
+            font-size: 80px; /* Large emojis */
+            opacity: 0.7;
+            pointer-events: none; /* Make them not clickable/interfering */
+            animation: float 10s infinite ease-in-out alternate;
+        }
+        .bg-emoji.e1 { top: 10%; left: 5%; animation-delay: 0s; }
+        .bg-emoji.e2 { top: 20%; right: 15%; animation-delay: 1.5s; }
+        .bg-emoji.e3 { bottom: 20%; left: 25%; animation-delay: 3s; }
+        .bg-emoji.e4 { top: 40%; left: 30%; animation-delay: 4.5s; }
+        .bg-emoji.e5 { bottom: 10%; right: 5%; animation-delay: 6s; }
+        .bg-emoji.e6 { top: 5%; left: 40%; animation-delay: 7.5s; }
+        .bg-emoji.e7 { bottom: 30%; right: 35%; animation-delay: 9s; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-15px); }
+        }
+
+
+        #gameContainer {
+            padding: 25px; /* Keep padding to give space around content */
+            text-align: center;
+            max-width: 90vw;
+            width: 500px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 5;
+        }
+
+        h1 {
+            font-family: 'Bubblegum Sans', cursive;
+            font-size: 2.8em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            display: flex; /* Allow letters to be inline-block for individual colors */
+            justify-content: center;
+            flex-wrap: wrap; /* Allow title to wrap on small screens */
+        }
+        h1 .letter {
+            display: inline-block; /* Each letter as a block */
+            margin: 0 1px; /* Small spacing between letters */
+        }
+
+
+        #scoreDisplay, #messageDisplay {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #32CD32;
+        }
+
+        /* Highlighted Message/Hint Display */
+        #messageDisplay, #messageDisplayFruit, #messageDisplayColor, #messageDisplayVegetable { /* Apply styles to all message displays */
+            color: #FF6F61; /* Red-orange text for feedback/hints */
+            font-weight: 900; /* Make it extra bold */
+            padding: 12px 25px; /* More padding */
+            background-color: #FF8C00; /* Darker, more vibrant orange for hints */
+            border-radius: 12px; /* More rounded */
+            border: 3px solid #FF4500; /* Stronger border for definition */
+            margin-top: 20px; /* More space above */
+            margin-bottom: 30px; /* More space below */
+            min-height: 50px; /* Ensure consistent height */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3); /* Stronger shadow */
+            display: inline-block;
+            max-width: 95%; /* Allow wider */
+            text-align: center;
+            transition: all 0.3s ease-out; /* Smooth transitions for properties */
+            font-size: 1.8em; /* Larger font size */
+            color: #FFFFFF; /* White text for better contrast on orange */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Shadow for text inside hint box */
+        }
+
+        /* Animation for hint highlight */
+        @keyframes hintPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 1; } /* More pronounced scale */
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #messageDisplay.hint-active, #messageDisplayFruit.hint-active, #messageDisplayColor.hint-active, #messageDisplayVegetable.hint-active { /* Apply animation to all */
+            animation: hintPulse 0.8s ease-in-out; /* Apply pulse animation with longer duration */
+        }
+
+        /* Styling for "Congratulations!" message */
+        .message-highlight-celebrate {
+            background-color: #4CAF50; /* Green background */
+            color: white; /* White text */
+            border: 3px solid #388E3C; /* Darker green border */
+            box-shadow: 0 8px 15px rgba(0, 128, 0, 0.4); /* Green shadow */
+            font-size: 2.5em; /* Larger font size for celebration */
+            font-weight: bold;
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            animation: celebratePop 0.6s ease-out forwards;
+        }
+
+        @keyframes celebratePop {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+
+        .game-image { /* Unified style for animal and fruit image displays */
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 15px; /* Keep rounded corners for visual appeal */
+            margin-bottom: 25px;
+            border: 5px solid #FFD700;
+            font-size: 150px; /* For emojis */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Specific style for color display */
+        #colorDisplay {
+            background-color: transparent; /* Will be set by JS */
+            font-size: 0; /* Hide emoji text if any */
+        }
+
+        #inputContainer {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #animalInput, #fruitInput, #colorInput, #vegetableInput { /* Apply to all inputs */
+            flex-grow: 1;
+            max-width: 250px;
+            padding: 12px 15px;
+            font-size: 1.2em;
+            border: 2px solid #6A5ACD;
+            border-radius: 10px;
+            outline: none;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            transition: border-color 0.3s ease;
+        }
+
+        #animalInput:focus, #fruitInput:focus, #colorInput:focus, #vegetableInput:focus {
+            border-color: #FF6F61;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(145deg, #6A5ACD, #836FFF);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(106, 90, 205, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(106, 90, 205, 0.6);
+            background: linear-gradient(145deg, #836FFF, #6A5ACD);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(106, 90, 205, 0.4);
+        }
+
+        /* Gift Box Styling */
+        #giftBox {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0); /* Start scaled down for pop-in */
+            width: 150px; /* Increased size */
+            height: 150px; /* Increased size */
+            background: linear-gradient(145deg, #FF6F61, #E63946);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease-in-out;
+            border: 5px solid #FFD700;
+            z-index: 10;
+            display: none;
+            color: white;
+        }
+
+        #giftBox.show-pop-in {
+            animation: giftBoxPopIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Pop-in animation */
+        }
+
+        @keyframes giftBoxPopIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+
+        #giftBox::before {
+            content: "🎁";
+            position: absolute;
+            font-size: 90px; /* Adjusted emoji size for larger box */
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #giftBox.opened::before {
+            content: "✨";
+        }
+
+        #giftBox.opened {
+            background: linear-gradient(145deg, #32CD32, #6BFF6B);
+            animation: bounceOut 0.5s forwards;
+        }
+
+        #giftBoxText {
+            font-size: 1.2em; /* Decreased font size */
+            font-weight: bold;
+            color: #fff;
+            position: absolute; /* Position over the gift box */
+            text-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+            display: none; /* Hidden by default, managed by JS */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Adjust for centering */
+            pointer-events: none; /* Allow clicks to pass through to the gift box */
+            white-space: nowrap; /* Prevent text from wrapping */
+            animation: giftTextPulse 1.5s infinite ease-in-out; /* Add pulsing animation */
+        }
+
+        @keyframes giftTextPulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.9; } /* Subtle scale and opacity change */
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+
+        @keyframes bounceOut {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -70%) scale(1.2); opacity: 0.8; }
+            100% { transform: translate(-50%, -150%) scale(0.5); opacity: 0; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2em;
+            }
+            #scoreDisplay, #messageDisplay {
+                font-size: 1.2em;
+            }
+            .game-image {
+                max-width: 250px;
+                height: 180px;
+            }
+            #inputContainer {
+                flex-direction: column;
+                align-items: center;
+            }
+            #animalInput, #fruitInput, #colorInput, #vegetableInput {
+                max-width: 100%;
+            }
+            button {
+                width: 100%;
+                max-width: 250px;
+            }
+            #giftBox {
+                width: 120px; /* Adjusted for smaller screens */
+                height: 120px; /* Adjusted for smaller screens */
+                font-size: 50px;
+            }
+            #giftBox::before {
+                font-size: 70px;
+            }
+            #giftBoxText {
+                font-size: 1em; /* Adjust for smaller screens */
+            }
+            #backgroundArt .child-boy, #backgroundArt .child-girl {
+                width: 80px;
+                height: 80px;
+            }
+            .bg-emoji {
+                font-size: 60px;
+            }
+        }
+
+        /* Main Menu Styling - now transparent */
+        #mainMenu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent;
+            border-radius: 25px;
+            box-shadow: none;
+            padding: 50px;
+            max-width: 90vw;
+            width: 500px;
+            box-sizing: border-box;
+            position: absolute;
+            z-index: 20;
+            height: 80%;
+        }
+
+        #mainMenu h2 {
+            font-family: 'Bubblegum Sans', cursive;
+            color: #6A5ACD;
+            font-size: 3em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #mainMenu button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            background: linear-gradient(145deg, #32CD32, #6BFF6B);
+            box-shadow: 0 6px 20px rgba(50, 205, 50, 0.6);
+            margin-top: 20px;
+            width: 80%; /* Make buttons wider */
+            max-width: 300px; /* Limit button width */
+        }
+
+        #mainMenu button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(50, 205, 50, 0.8);
+        }
+
+        .game-screen { /* Unified class for individual game screens */
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Music Toggle Button Styling */
+        #musicToggleButton {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; /* Make it round */
+            background-color: #6A5ACD; /* Purple color */
+            color: white;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 30; /* Ensure it's on top */
+            border: none; /* Remove default button border */
+            transition: background-color 0.3s ease;
+        }
+
+        #musicToggleButton:hover {
+            background-color: #836FFF; /* Lighter purple on hover */
+        }
+
+        /* Back to Home Button Styling */
+        .back-to-home-button {
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(145deg, #FF6F61, #E63946); /* Red-orange gradient */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(255, 111, 97, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+            margin-top: 20px; /* Space from other elements */
+            
+            /* Positioning for top-left */
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10; /* Ensure it's above other game elements */
+            padding: 8px 15px; /* Smaller padding for smaller size */
+            font-size: 0.9em; /* Smaller font size */
+        }
+
+        .back-to-home-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 111, 97, 0.6);
+            background: linear-gradient(145deg, #E63946, #FF6F61);
+        }
+
+        /* Options Container Styling */
+        .options-container {
+            display: flex; /* Default to flex, will be set to 'none' when not in use */
+            flex-wrap: wrap; /* Allow options to wrap on smaller screens */
+            justify-content: center;
+            gap: 10px; /* Space between buttons */
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .option-button {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(145deg, #4682B4, #5F9EA0); /* SteelBlue to CadetBlue */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(70, 130, 180, 0.4);
+            transition: all 0.3s ease;
+            text-transform: capitalize; /* Capitalize first letter of each option */
+            min-width: 120px; /* Ensure buttons have a minimum width */
+        }
+
+        .option-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(70, 130, 180, 0.6);
+            background: linear-gradient(145deg, #5F9EA0, #4682B4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Art Layer -->
+    <div id="backgroundArt">
+        <!-- Simplified children SVGs -->
+        <svg class="child-boy" viewBox="0 0 100 100">
+            <circle cx="50" cy="30" r="20" fill="#FFDBAC"/> <!-- Head -->
+            <rect x="35" y="45" width="30" height="45" rx="5" fill="#4682B4"/> <!-- Body -->
+            <rect x="30" y="80" width="10" height="20" rx="3" fill="#8B4513"/> <!-- Left Leg -->
+            <rect x="60" y="80" width="10" height="20" rx="3" fill="#8B4513"/> <!-- Right Leg -->
+            <rect x="25" y="50" width="10" height="25" rx="3" fill="#4682B4" transform="rotate(10 25 50)"/> <!-- Left Arm -->
+            <rect x="65" y="50" width="10" height="25" rx="3" fill="#4682B4" transform="rotate(-10 75 50)"/> <!-- Right Arm -->
+            <circle cx="43" cy="28" r="3" fill="black"/> <!-- Left Eye -->
+            <circle cx="57" cy="28" r="3" r="3" fill="black"/> <!-- Right Eye -->
+            <path d="M45 35 Q50 40 55 35" stroke="black" stroke-width="2" fill="none"/> <!-- Smile -->
+        </svg>
+        <svg class="child-girl" viewBox="0 0 100 100">
+            <circle cx="50" cy="30" r="20" fill="#FFDBAC"/> <!-- Head -->
+            <path d="M30 45 L70 45 L50 90 Z" fill="#FF69B4"/> <!-- Dress -->
+            <rect x="35" y="85" width="10" height="15" rx="3" fill="#8B4513"/> <!-- Left Leg -->
+            <rect x="55" y="85" width="10" height="15" rx="3" fill="#8B4513"/> <!-- Right Leg -->
+            <rect x="25" y="50" width="10" height="25" rx="3" fill="#FF69B4" transform="rotate(10 25 50)"/> <!-- Left Arm -->
+            <rect x="65" y="50" width="10" height="25" rx="3" fill="#FF69B4" transform="rotate(-10 75 50)"/> <!-- Right Arm -->
+            <circle cx="43" cy="28" r="3" fill="black"/> <!-- Left Eye -->
+            <circle cx="57" cy="28" r="3" fill="black"/> <!-- Right Eye -->
+            <path d="M45 35 Q50 40 55 35" stroke="black" stroke-width="2" fill="none"/> <!-- Smile -->
+            <path d="M50 10 C65 10 70 20 60 30 C50 20 35 20 40 30 C30 20 35 10 50 10 Z" fill="#FFD700"/> <!-- Hair Bow -->
+        </svg>
+
+        <!-- Background Emojis - scattered -->
+        <span class="bg-emoji e1">🍎</span>
+        <span class="bg-emoji e2">🐒</span>
+        <span class="bg-emoji e3">🍌</span>
+        <span class="bg-emoji e4">🐘</span>
+        <span class="bg-emoji e5">🍊</span>
+        <span class="bg-emoji e6">🦒</span>
+        <span class="bg-emoji e7">🐶</span>
+        <span class="bg-emoji e1" style="top: 80%; left: 15%;">🥕</span>
+        <span class="bg-emoji e2" style="top: 70%; right: 25%;">🍓</span>
+        <span class="bg-emoji e3" style="top: 50%; left: 10%;">🦁</span>
+        <span class="bg-emoji e4" style="top: 30%; right: 5%;">🍇</span>
+        <span class="bg-emoji e5" style="top: 60%; left: 50%;">🐅</span>
+        <span class="bg-emoji e6" style="top: 15%; right: 40%;">🍒</span>
+    </div>
+
+    <div id="gameContainer">
+        <!-- Music Toggle Button -->
+        <button id="musicToggleButton">🔊</button>
+
+        <!-- Main Menu -->
+        <div id="mainMenu">
+            <h2>Welcome to Kids Space!</h2>
+            <button id="playAnimalsButton">Find the Animal</button>
+            <button id="playFruitsButton">Find the Fruit</button>
+            <button id="playColorsButton">Find the Color</button>
+            <button id="playVegetablesButton">Find the Vegetable</button> <!-- New button for Vegetables game -->
+        </div>
+
+        <!-- Animal Game Screen (initially hidden) -->
+        <div id="animalGameScreen" class="game-screen">
+            <h1 id="animalGameTitle"></h1> <!-- Dynamic title -->
+            <p id="scoreDisplayAnimal">Score: 0</p>
+            <div id="animalImage" class="game-image"></div>
+            <p id="messageDisplayAnimal"></p>
+
+            <div id="inputContainerAnimal">
+                <input type="text" id="animalInput" placeholder="Type animal name here..." autocomplete="off">
+                <button id="submitAnimalButton">Submit</button>
+            </div>
+            <div id="optionsContainerAnimal" class="options-container"></div> <!-- New options container -->
+            <button id="backToHomeAnimalButton" class="back-to-home-button">Back to Home</button> <!-- New Back to Home Button -->
+        </div>
+
+        <!-- Fruit Game Screen (initially hidden) -->
+        <div id="fruitGameScreen" class="game-screen">
+            <h1 id="fruitGameTitle"></h1> <!-- Dynamic title -->
+            <p id="scoreDisplayFruit">Score: 0</p>
+            <div id="fruitImage" class="game-image"></div>
+            <p id="messageDisplayFruit"></p>
+
+            <div id="inputContainerFruit">
+                <input type="text" id="fruitInput" placeholder="Type fruit name here..." autocomplete="off">
+                <button id="submitFruitButton">Submit</button>
+            </div>
+            <div id="optionsContainerFruit" class="options-container"></div> <!-- New options container -->
+            <button id="backToHomeFruitButton" class="back-to-home-button">Back to Home</button> <!-- New Back to Home Button -->
+        </div>
+
+        <!-- Color Game Screen (initially hidden) -->
+        <div id="colorGameScreen" class="game-screen">
+            <h1 id="colorGameTitle"></h1> <!-- Dynamic title -->
+            <p id="scoreDisplayColor">Score: 0</p>
+            <div id="colorDisplay" class="game-image"></div> <!-- Div for color display -->
+            <p id="messageDisplayColor"></p>
+
+            <div id="inputContainerColor">
+                <input type="text" id="colorInput" placeholder="Type color name here..." autocomplete="off">
+                <button id="submitColorButton">Submit</button>
+            </div>
+            <div id="optionsContainerColor" class="options-container"></div> <!-- New options container -->
+            <button id="backToHomeColorButton" class="back-to-home-button">Back to Home</button> <!-- New Back to Home Button -->
+        </div>
+
+        <!-- Vegetable Game Screen (initially hidden) -->
+        <div id="vegetableGameScreen" class="game-screen">
+            <h1 id="vegetableGameTitle"></h1> <!-- Dynamic title -->
+            <p id="scoreDisplayVegetable">Score: 0</p>
+            <div id="vegetableImage" class="game-image"></div>
+            <p id="messageDisplayVegetable"></p>
+
+            <div id="inputContainerVegetable">
+                <input type="text" id="vegetableInput" placeholder="Type vegetable name here..." autocomplete="off">
+                <button id="submitVegetableButton">Submit</button>
+            </div>
+            <div id="optionsContainerVegetable" class="options-container"></div> <!-- New options container -->
+            <button id="backToHomeVegetableButton" class="back-to-home-button">Back to Home</button> <!-- New Back to Home Button -->
+        </div>
+
+
+        <div id="giftBox">
+            <span id="giftBoxText"></span> <!-- Text will be set by JS -->
+        </div>
+    </div>
+
+    <script>
+        const mainMenu = document.getElementById('mainMenu');
+        const playAnimalsButton = document.getElementById('playAnimalsButton');
+        const playFruitsButton = document.getElementById('playFruitsButton');
+        const playColorsButton = document.getElementById('playColorsButton');
+        const playVegetablesButton = document.getElementById('playVegetablesButton'); // New button reference
+        const musicToggleButton = document.getElementById('musicToggleButton');
+        const backgroundArt = document.getElementById('backgroundArt');
+
+        const animalGameScreen = document.getElementById('animalGameScreen');
+        const animalGameTitle = document.getElementById('animalGameTitle');
+        const animalImageDiv = document.getElementById('animalImage');
+        const animalInput = document.getElementById('animalInput');
+        const submitAnimalButton = document.getElementById('submitAnimalButton');
+        const scoreDisplayAnimal = document.getElementById('scoreDisplayAnimal');
+        const messageDisplayAnimal = document.getElementById('messageDisplayAnimal');
+        const optionsContainerAnimal = document.getElementById('optionsContainerAnimal');
+        const backToHomeAnimalButton = document.getElementById('backToHomeAnimalButton');
+
+        const fruitGameScreen = document.getElementById('fruitGameScreen');
+        const fruitGameTitle = document.getElementById('fruitGameTitle');
+        const fruitImageDiv = document.getElementById('fruitImage');
+        const fruitInput = document.getElementById('fruitInput');
+        const submitFruitButton = document.getElementById('submitFruitButton');
+        const scoreDisplayFruit = document.getElementById('scoreDisplayFruit');
+        const messageDisplayFruit = document.getElementById('messageDisplayFruit');
+        const optionsContainerFruit = document.getElementById('optionsContainerFruit');
+        const backToHomeFruitButton = document.getElementById('backToHomeFruitButton');
+
+        const colorGameScreen = document.getElementById('colorGameScreen');
+        const colorGameTitle = document.getElementById('colorGameTitle');
+        const colorDisplayDiv = document.getElementById('colorDisplay');
+        const colorInput = document.getElementById('colorInput');
+        const submitColorButton = document.getElementById('submitColorButton');
+        const scoreDisplayColor = document.getElementById('scoreDisplayColor');
+        const messageDisplayColor = document.getElementById('messageDisplayColor');
+        const optionsContainerColor = document.getElementById('optionsContainerColor');
+        const backToHomeColorButton = document.getElementById('backToHomeColorButton');
+
+        // New Vegetable Game Elements
+        const vegetableGameScreen = document.getElementById('vegetableGameScreen');
+        const vegetableGameTitle = document.getElementById('vegetableGameTitle');
+        const vegetableImageDiv = document.getElementById('vegetableImage');
+        const vegetableInput = document.getElementById('vegetableInput');
+        const submitVegetableButton = document.getElementById('submitVegetableButton');
+        const scoreDisplayVegetable = document.getElementById('scoreDisplayVegetable');
+        const messageDisplayVegetable = document.getElementById('messageDisplayVegetable');
+        const optionsContainerVegetable = document.getElementById('optionsContainerVegetable');
+        const backToHomeVegetableButton = document.getElementById('backToHomeVegetableButton');
+
+
+        const giftBox = document.getElementById('giftBox');
+        const giftBoxText = document.getElementById('giftBoxText');
+
+        // Tone.js Setup for background music
+        const synth = new Tone.Synth().toDestination();
+        // Updated melody for background music
+        const melody = [
+            { note: "C4", time: "0:0", duration: "8n" },
+            { note: "E4", time: "0:1", duration: "8n" },
+            { note: "G4", time: "0:2", duration: "8n" },
+            { note: "C5", time: "0:3", duration: "8n" },
+            { note: "A4", time: "0:4", duration: "8n" },
+            { note: "G4", time: "0:5", duration: "8n" },
+            { note: "E4", time: "0:6", duration: "8n" },
+            { note: "C4", time: "0:7", duration: "8n" }
+        ];
+
+        const musicPart = new Tone.Part((time, value) => {
+            synth.triggerAttackRelease(value.note, value.duration, time);
+        }, melody);
+
+        musicPart.loop = true;
+        musicPart.loopEnd = "1m"; // 1 measure, which is 8 eighth notes at default tempo
+        
+        // Define normal and boosted volume levels
+        const NORMAL_MUSIC_VOLUME = -15; // Quieter for background
+        const BOOSTED_MUSIC_VOLUME = -5; // Louder for celebration
+        synth.volume.value = NORMAL_MUSIC_VOLUME; // Initial volume
+
+        // Tone.js for gift box arrival sound (now plays a short chord)
+        const giftBoxSynth = new Tone.Synth().toDestination();
+        giftBoxSynth.volume.value = -5; // Increased volume for effect
+
+        async function playGiftBoxSound() {
+            if (Tone.context.state !== 'running') {
+                try {
+                    await Tone.start();
+                    console.log("Tone.js audio context started/resumed for gift box.");
+                } catch (e) {
+                    console.error("Failed to start Tone.js audio context for gift box:", e);
+                    return;
+                }
+            }
+            // Temporarily boost background music volume
+            synth.volume.rampTo(BOOSTED_MUSIC_VOLUME, 0.5); // Ramp up over 0.5 seconds
+
+            // Play a short, cheerful chord
+            giftBoxSynth.triggerAttackRelease("C5", "8n", Tone.now());
+            giftBoxSynth.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
+            giftBoxSynth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+            console.log("Gift box sound (chord) triggered.");
+        }
+
+        // Function to reset music volume after gift box event
+        function resetMusicVolume() {
+            synth.volume.rampTo(NORMAL_MUSIC_VOLUME, 1); // Ramp down over 1 second
+            console.log("Background music volume reset.");
+        }
+
+
+        const titleColors = ['#FF6F61', '#32CD32', '#6A5ACD', '#FFD700', '#FF69B4', '#1E90FF', '#FFA500', '#DA70D6'];
+
+        const dynamicBackgroundGradients = [
+            'linear-gradient(135deg, #FFC0CB, #ADD8E6)', /* Pink to Light Blue */
+            'linear-gradient(45deg, #90EE90, #FFD700)',  /* Light Green to Gold */
+            'linear-gradient(225deg, #FFA07A, #87CEEB)', /* Light Salmon to Sky Blue */
+            'linear-gradient(315deg, #BA55D3, #6A5ACD)', /* Medium Orchid to Slate Blue */
+            'linear-gradient(90deg, #FFB6C1, #F0E68C)'   /* Light Pink to Khaki */
+        ];
+        let currentBackgroundIndex = 0;
+
+        // Game Data
+        const animals = [
+            { name: "lion", emoji: "🦁" },
+            { name: "elephant", emoji: "🐘" },
+            { name: "giraffe", emoji: "🦒" },
+            { name: "zebra", emoji: "🦓" },
+            { name: "monkey", emoji: "🐒" },
+            { name: "penguin", emoji: "🐧" },
+            { name: "tiger", emoji: "🐅" },
+            { name: "bear", emoji: "🐻" },
+            { name: "dog", emoji: "🐶" },
+            { name: "cat", emoji: "🐱" },
+            { name: "duck", emoji: "🦆" },
+            { name: "rabbit", emoji: "🐰" }
+        ];
+
+        const fruits = [
+            { name: "apple", emoji: "🍎" },
+            { name: "banana", emoji: "🍌" },
+            { name: "orange", emoji: "🍊" },
+            { name: "grape", emoji: "🍇" },
+            { name: "strawberry", emoji: "🍓" },
+            { name: "watermelon", emoji: "🍉" },
+            { name: "pineapple", emoji: "🍍" },
+            { name: "cherry", emoji: "🍒" },
+            { name: "lemon", emoji: "🍋" },
+            { name: "pear", emoji: "🍐" },
+            { name: "mango", emoji: "🥭" },
+            { name: "kiwi", emoji: "🥝" }
+        ];
+
+        const colors = [
+            { name: "red", hex: "#FF0000" },
+            { name: "blue", hex: "#0000FF" },
+            { name: "green", hex: "#008000" },
+            { name: "yellow", hex: "#FFFF00" },
+            { name: "orange", hex: "#FFA500" },
+            { name: "purple", hex: "#800080" },
+            { name: "pink", hex: "#FFC0CB" },
+            { name: "brown", hex: "#A52A2A" },
+            { name: "black", hex: "#000000" },
+            { name: "white", hex: "#FFFFFF" },
+            { name: "gray", hex: "#808080" },
+            { name: "cyan", hex: "#00FFFF" }
+        ];
+
+        const vegetables = [
+            { name: "carrot", emoji: "🥕" },
+            { name: "broccoli", emoji: "🥦" },
+            { name: "tomato", emoji: "🍅" },
+            { name: "potato", emoji: "🥔" },
+            { name: "onion", emoji: "🧅" },
+            { name: "corn", emoji: "🌽" },
+            { name: "cucumber", emoji: "🥒" },
+            { name: "pepper", emoji: "🌶️" },
+            { name: "mushroom", emoji: "🍄" },
+            { name: "garlic", emoji: "🧄" },
+            { name: "eggplant", emoji: "🍆" },
+            { name: "cabbage", emoji: "🥬" }
+        ];
+
+
+        const giftBoxThresholds = [3, 5, 10, 13, 15, 18, 20];
+
+        let currentPlayingGame = '';
+        let currentItems = [];
+        let currentItemIndex = 0;
+        let score = 0;
+        let shuffledItems = [];
+        let giftBoxActive = false;
+        let backgroundMusicEnabled = false; // Initial state: music off
+
+        // Function to apply random colors to each letter of a title
+        function colorizeTitle(element, text) {
+            element.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                const span = document.createElement('span');
+                span.textContent = text[i];
+                span.className = 'letter';
+                span.style.color = titleColors[Math.floor(Math.random() * titleColors.length)];
+                element.appendChild(span);
+            }
+        }
+
+        // Function to toggle background music (now uses Tone.js)
+        async function toggleBackgroundMusic() {
+            // Ensure audio context is resumed or started on user gesture
+            if (Tone.context.state !== 'running') {
+                try {
+                    await Tone.start();
+                    console.log("Tone.js audio context started/resumed.");
+                } catch (e) {
+                    console.error("Failed to start Tone.js audio context:", e);
+                    getMessageDisplay().textContent = "Music could not start. Please click the speaker icon again!";
+                    getMessageDisplay().style.display = 'inline-block';
+                    setTimeout(() => getMessageDisplay().style.display = 'none', 3000);
+                    return; // Exit if context fails to start
+                }
+            }
+
+            if (Tone.Transport.state === 'stopped' || Tone.Transport.state === 'paused') {
+                Tone.Transport.start(); // Ensure transport is running
+                musicPart.start(0); // Start the Tone.js part from the beginning
+                musicToggleButton.textContent = '🔊';
+                backgroundMusicEnabled = true;
+                console.log("Music playing (Tone.js).");
+            } else {
+                musicPart.stop(); // Stop the Tone.js part
+                Tone.Transport.stop(); // Also stop the transport when music is off
+                musicToggleButton.textContent = '🔇';
+                backgroundMusicEnabled = false;
+                console.log("Music paused (Tone.js).");
+            }
+        }
+
+        // Fisher-Yates (Knuth) shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Function to load a new item (animal, fruit, color, or vegetable)
+        function loadNewItem() {
+            console.log("loadNewItem called. currentItemIndex:", currentItemIndex, "shuffledItems.length:", shuffledItems.length);
+            if (currentItemIndex >= shuffledItems.length) {
+                shuffleArray(currentItems);
+                shuffledItems = [...currentItems];
+                currentItemIndex = 0;
+                getMessageDisplay().textContent = "You've learned a lot! Let's play another round!";
+                resetMessageDisplayStyling();
+                score = 0;
+                console.log("loadNewItem: Shuffled items, reset score to 0.");
+            }
+
+            const item = shuffledItems[currentItemIndex];
+            const imageDiv = getImageDiv();
+
+            // Clear previous display properties
+            imageDiv.textContent = '';
+            imageDiv.style.backgroundColor = '';
+            imageDiv.style.border = '5px solid #FFD700'; // Reset border for color display
+
+            if (currentPlayingGame === 'colors') {
+                imageDiv.style.backgroundColor = item.hex; // Set background color for color game
+                imageDiv.setAttribute('aria-label', item.name); // Set aria-label for accessibility
+                backgroundArt.style.background = '#f0f0f0'; // Set light gray background for color game
+            } else {
+                imageDiv.textContent = item.emoji; // Set emoji for animal/fruit/vegetable games
+                imageDiv.setAttribute('aria-label', item.name);
+                currentBackgroundIndex = (currentBackgroundIndex + 1) % dynamicBackgroundGradients.length;
+                backgroundArt.style.background = dynamicBackgroundGradients[currentBackgroundIndex]; // Cycle gradients for other games
+            }
+            
+            getInputElement().value = '';
+            getInputElement().focus(); // Ensure input is focused for the new item
+            getMessageDisplay().textContent = '';
+            // Ensure message display is visible by default when loading new item
+            getMessageDisplay().style.display = 'inline-block'; 
+            resetMessageDisplayStyling();
+            getScoreDisplay().textContent = `Score: ${score}`;
+            
+            // Re-enable input and show submit button for new item
+            getInputElement().disabled = false; // Ensure input is enabled
+            getSubmitButton().style.display = 'inline-block'; // Ensure submit button is visible
+            
+            giftBox.style.display = 'none';
+            giftBox.classList.remove('opened', 'show-pop-in'); // Remove pop-in class to reset animation
+            giftBoxText.style.display = 'none'; // Hide the text when new item loads
+
+            console.log("loadNewItem: Input enabled, submit button visible, options cleared.");
+        }
+
+        // Function to reset message display styling to default
+        function resetMessageDisplayStyling() {
+            const messageDisplay = getMessageDisplay();
+            messageDisplay.classList.remove('hint-active', 'message-highlight-celebrate');
+            messageDisplay.style.backgroundColor = '';
+            messageDisplay.style.border = '';
+            messageDisplay.style.boxShadow = '';
+            messageDisplay.style.color = '#FF6F61'; /* Default text color for feedback */
+            messageDisplay.style.textShadow = '';
+            messageDisplay.style.fontSize = '1.5em'; /* Reset font size to default */
+            messageDisplay.style.padding = '8px 15px'; /* Reset padding to default */
+            messageDisplay.style.marginTop = '10px'; /* Reset margin-top to default */
+            messageDisplay.style.marginBottom = '15px'; /* Reset margin-bottom to default */
+            messageDisplay.style.display = 'inline-block'; // Ensure it's visible by default
+        }
+
+        // Function to clear multiple choice options
+        function clearOptions() {
+            const optionsContainer = getOptionsContainer();
+            if (optionsContainer) {
+                optionsContainer.innerHTML = '';
+                optionsContainer.style.display = 'none'; // Explicitly hide the container
+                console.log("clearOptions: Options container cleared and hidden.", optionsContainer.id);
+            } else {
+                console.warn("clearOptions: Options container not found during clearOptions(). This might indicate a problem.");
+            }
+        }
+
+        // Function to generate and display multiple choice options
+        function generateOptions(correctAnswer) {
+            console.log("generateOptions called for correct answer:", correctAnswer);
+            let options = [correctAnswer];
+            
+            // Get all names from currentItems to create a pool for incorrect answers
+            const allItemNames = currentItems.map(item => item.name.toLowerCase());
+            let incorrectOptionsPool = allItemNames.filter(name => name !== correctAnswer.toLowerCase());
+
+            shuffleArray(incorrectOptionsPool);
+
+            // Add up to 2 random incorrect options ensuring they are unique (total 3 options: 1 correct + 2 incorrect)
+            let addedIncorrectCount = 0;
+            for (let i = 0; i < incorrectOptionsPool.length && addedIncorrectCount < 2; i++) {
+                if (!options.includes(incorrectOptionsPool[i])) {
+                    options.push(incorrectOptionsPool[i]);
+                    addedIncorrectCount++;
+                }
+            }
+
+            // If we still have less than 3 unique options from the main list, fill with any available unique items
+            if (options.length < 3) {
+                const uniqueAllItems = [...new Set(currentItems.map(item => item.name.toLowerCase()))];
+                shuffleArray(uniqueAllItems); // Shuffle this pool too for variety
+                for (let i = 0; i < uniqueAllItems.length && options.length < 3; i++) {
+                    if (!options.includes(uniqueAllItems[i])) {
+                        options.push(uniqueAllItems[i]);
+                    }
+                }
+            }
+
+            // Ensure options array has unique elements (in case of small currentItems list and duplicates somehow slipped in)
+            options = [...new Set(options)];
+
+            shuffleArray(options); // Shuffle the final options to randomize position of correct answer
+
+            const optionsContainer = getOptionsContainer();
+            if (!optionsContainer) {
+                console.error("CRITICAL ERROR: Options container not found for current game type during generation. ID:", currentPlayingGame);
+                getMessageDisplay().textContent = "Oops! Options could not load. Please try again or refresh.";
+                getMessageDisplay().style.display = 'inline-block'; // Ensure error message is visible
+                return; // Prevent further errors if container is not found
+            }
+            
+            optionsContainer.innerHTML = ''; // Crucial: clear previous options and prepare for new buttons
+            optionsContainer.style.display = 'flex'; // Explicitly show the container as flex
+            console.log("generateOptions: Options container found:", optionsContainer.id, "cleared previous options and set display to flex.");
+
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.charAt(0).toUpperCase() + option.slice(1); // Capitalize first letter
+                button.classList.add('option-button');
+                button.addEventListener('click', () => {
+                    getInputElement().value = option; // Set the input value to the selected option
+                    checkAnswer(); // Call checkAnswer
+                });
+                optionsContainer.appendChild(button);
+                console.log("generateOptions: Appended button for:", option);
+            });
+            console.log("generateOptions: Final options array before rendering:", options); // Debug log
+            console.log("generateOptions: Buttons appended. Total children in container:", optionsContainer.children.length); // Debug log
+        }
+
+
+        // Function to open the gift box
+        function openGiftBox() {
+            if (!giftBoxActive) return;
+
+            score += 5;
+            getScoreDisplay().textContent = `Score: ${score}`;
+            
+            resetMessageDisplayStyling(); // Reset styling before showing bonus message
+            getMessageDisplay().style.color = '#32CD32'; // Green for bonus message
+            getMessageDisplay().textContent = 'Bonus! +5 Points!';
+
+            giftBox.classList.add('opened');
+            giftBoxText.textContent = '+5 Points!'; // Change text to +5 Points!
+            giftBoxText.style.display = 'block'; // Ensure text is visible
+
+            setTimeout(() => {
+                giftBox.style.display = 'none';
+                giftBox.classList.remove('opened', 'show-pop-in'); // Remove pop-in class after animation
+                giftBoxText.style.display = 'none'; // Hide the text again
+                giftBoxActive = false;
+                loadNewItem();
+                resetMusicVolume(); // Reset music volume after gift box is opened
+            }, 1000);
+        }
+
+        // Function to check the answer
+        function checkAnswer() {
+            console.log("checkAnswer called.");
+            const userAnswer = getInputElement().value.trim().toLowerCase();
+            const currentItem = shuffledItems[currentItemIndex];
+            const correctAnswer = currentItem.name.toLowerCase();
+
+            clearOptions(); // Clear options as soon as an answer is submitted or selected
+
+            if (userAnswer === correctAnswer) {
+                console.log("Answer is CORRECT!");
+                score++;
+                getMessageDisplay().textContent = 'Correct! Great job!';
+                resetMessageDisplayStyling(); // Reset styling for correct message
+                getMessageDisplay().style.color = '#32CD32'; // Green for correct message
+                
+                getScoreDisplay().textContent = `Score: ${score}`;
+                
+                currentItemIndex++; 
+
+                if (giftBoxThresholds.includes(score)) {
+                    console.log("Score reached gift box threshold. Showing congratulations.");
+                    // Show "Congratulations!" first
+                    const messageDisplay = getMessageDisplay();
+                    messageDisplay.textContent = 'Congratulations!';
+                    messageDisplay.classList.add('message-highlight-celebrate');
+                    
+                    setTimeout(() => {
+                        giftBox.style.display = 'flex';
+                        giftBox.classList.add('show-pop-in'); // Add class to trigger pop-in animation
+                        giftBoxText.textContent = 'Click to open!'; // Set initial text for gift box
+                        giftBoxText.style.display = 'block'; // Show the text
+                        giftBoxActive = true;
+                        playGiftBoxSound(); // Play sound and boost music when gift box appears
+                        resetMessageDisplayStyling(); // Clear congrats message and reset style
+                        console.log("Gift box shown after congratulations.");
+                    }, 1500); // Display "Congratulations!" for 1.5 seconds
+                } else {
+                    console.log("No gift box. Loading new item in 1 second.");
+                    setTimeout(loadNewItem, 1000);
+                }
+                
+            } else {
+                console.log("Answer is INCORRECT. Showing options.");
+                const messageDisplay = getMessageDisplay();
+                messageDisplay.style.color = '#FFFFFF';
+                messageDisplay.style.backgroundColor = '#FF8C00';
+                messageDisplay.style.border = '3px solid #FF4500';
+                messageDisplay.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
+                messageDisplay.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)';
+                messageDisplay.style.fontSize = '1.4em'; /* DECREASED FONT SIZE HERE */
+                messageDisplay.style.padding = '10px 20px'; /* Adjusted padding for new font size */
+                messageDisplay.style.marginTop = '15px'; /* Adjusted margin */
+                messageDisplay.style.marginBottom = '25px'; /* Adjusted margin */
+
+
+                // Display generic hint message and then generate options
+                messageDisplay.textContent = `Not quite! Pick the correct name:`;
+                messageDisplay.classList.add('hint-active');
+                // messageDisplay.style.display = 'none'; // NEW: Hide message display to reveal options
+                
+                // getInputElement().value = ''; // REMOVED: Keep user's input visible
+                getInputElement().disabled = true; // Disable input when options are shown
+                getSubmitButton().style.display = 'none'; // Hide submit button when options are shown
+                
+                console.log("Input disabled, submit button hidden. Calling generateOptions for:", currentItem.name); // Debug log
+                // Generate and display the multiple choice options
+                generateOptions(currentItem.name);
+                console.log("generateOptions call completed."); // Debug log
+            }
+        }
+
+        // Helper functions to get elements based on current game type
+        function getScoreDisplay() {
+            if (currentPlayingGame === 'animals') return scoreDisplayAnimal;
+            if (currentPlayingGame === 'fruits') return scoreDisplayFruit;
+            if (currentPlayingGame === 'colors') return scoreDisplayColor;
+            if (currentPlayingGame === 'vegetables') return scoreDisplayVegetable; // New
+            return null; // Should not happen
+        }
+
+        function getMessageDisplay() {
+            if (currentPlayingGame === 'animals') return messageDisplayAnimal;
+            if (currentPlayingGame === 'fruits') return messageDisplayFruit;
+            if (currentPlayingGame === 'colors') return messageDisplayColor;
+            if (currentPlayingGame === 'vegetables') return messageDisplayVegetable; // New
+            return null;
+        }
+
+        function getImageDiv() {
+            if (currentPlayingGame === 'animals') return animalImageDiv;
+            if (currentPlayingGame === 'fruits') return fruitImageDiv;
+            if (currentPlayingGame === 'colors') return colorDisplayDiv;
+            if (currentPlayingGame === 'vegetables') return vegetableImageDiv; // New
+            return null;
+        }
+
+        function getInputElement() {
+            if (currentPlayingGame === 'animals') return animalInput;
+            if (currentPlayingGame === 'fruits') return fruitInput;
+            if (currentPlayingGame === 'colors') return colorInput;
+            if (currentPlayingGame === 'vegetables') return vegetableInput; // New
+            return null;
+        }
+
+        function getSubmitButton() {
+            if (currentPlayingGame === 'animals') return submitAnimalButton;
+            if (currentPlayingGame === 'fruits') return submitFruitButton;
+            if (currentPlayingGame === 'colors') return submitColorButton;
+            if (currentPlayingGame === 'vegetables') return submitVegetableButton; // New
+            return null;
+        }
+
+        function getOptionsContainer() {
+            if (currentPlayingGame === 'animals') return optionsContainerAnimal;
+            if (currentPlayingGame === 'fruits') return optionsContainerFruit;
+            if (currentPlayingGame === 'colors') return optionsContainerColor;
+            if (currentPlayingGame === 'vegetables') return optionsContainerVegetable; // New
+            return null;
+        }
+
+        // Function to go back to the main menu
+        function backToMainMenu() {
+            console.log("backToMainMenu called.");
+            animalGameScreen.style.display = 'none';
+            fruitGameScreen.style.display = 'none';
+            colorGameScreen.style.display = 'none';
+            vegetableGameScreen.style.display = 'none'; // Hide vegetable game screen
+            mainMenu.style.display = 'flex';
+            musicPart.stop(); // Stop Tone.js music when returning to main menu
+            Tone.Transport.stop(); // Also stop the transport when music is off
+            musicToggleButton.textContent = '🔇';
+            backgroundMusicEnabled = false;
+            console.log("Returned to main menu, music paused.");
+            backgroundArt.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #A7D9F0 50%, #90EE90 50%, #B2EBF2 100%)'; // Reset background to default gradient
+            
+            // Reset message display styling and clear options for all screens when returning to menu
+            messageDisplayAnimal.textContent = '';
+            resetMessageDisplayStylingForElement(messageDisplayAnimal);
+            messageDisplayAnimal.style.display = 'none';
+            if (optionsContainerAnimal) optionsContainerAnimal.innerHTML = '';
+            if (optionsContainerAnimal) optionsContainerAnimal.style.display = 'none';
+
+            messageDisplayFruit.textContent = '';
+            resetMessageDisplayStylingForElement(messageDisplayFruit);
+            messageDisplayFruit.style.display = 'none';
+            if (optionsContainerFruit) optionsContainerFruit.innerHTML = '';
+            if (optionsContainerFruit) optionsContainerFruit.style.display = 'none';
+
+            messageDisplayColor.textContent = '';
+            resetMessageDisplayStylingForElement(messageDisplayColor);
+            messageDisplayColor.style.display = 'none';
+            if (optionsContainerColor) optionsContainerColor.innerHTML = '';
+            if (optionsContainerColor) optionsContainerColor.style.display = 'none';
+
+            messageDisplayVegetable.textContent = ''; // New: Reset vegetable message display
+            resetMessageDisplayStylingForElement(messageDisplayVegetable);
+            messageDisplayVegetable.style.display = 'none'; // New: Hide vegetable message
+            if (optionsContainerVegetable) optionsContainerVegetable.innerHTML = ''; // New: Clear vegetable options
+            if (optionsContainerVegetable) optionsContainerVegetable.style.display = 'none'; // New: Hide vegetable options
+
+            // Re-enable inputs and show submit buttons for all games
+            animalInput.disabled = false;
+            submitAnimalButton.style.display = 'inline-block';
+            fruitInput.disabled = false;
+            submitFruitButton.style.display = 'inline-block';
+            colorInput.disabled = false;
+            submitColorButton.style.display = 'inline-block';
+            vegetableInput.disabled = false; // New: Re-enable vegetable input
+            submitVegetableButton.style.display = 'inline-block'; // New: Show vegetable submit button
+            console.log("Back to menu: Inputs enabled, submit buttons visible, options cleared for all screens.");
+        }
+
+        // Helper function to reset styling for a specific message display element
+        function resetMessageDisplayStylingForElement(element) {
+            element.classList.remove('hint-active', 'message-highlight-celebrate');
+            element.style.backgroundColor = '';
+            element.style.border = '';
+            element.style.boxShadow = '';
+            element.style.color = '#FF6F61';
+            element.style.textShadow = '';
+            element.style.fontSize = '1.5em';
+            element.style.padding = '8px 15px';
+            element.style.marginTop = '10px';
+            element.style.marginBottom = '15px';
+            element.style.display = 'inline-block'; // Set to inline-block by default
+        }
+
+
+        // Game Initialization Function
+        async function startGame(gameType) { // Make it async as Tone.start() is async
+            currentPlayingGame = gameType;
+            mainMenu.style.display = 'none';
+
+            // Ensure audio context is running on user interaction
+            if (Tone.context.state !== 'running') {
+                try {
+                    await Tone.start();
+                    console.log("Tone.js audio context started/resumed by game start.");
+                } catch (e) {
+                    console.error("Failed to start Tone.js audio context on game start:", e);
+                    // Optionally, inform the user that audio might not play
+                }
+            }
+
+            // Attempt to play music when game starts, if not already playing
+            if (!backgroundMusicEnabled) {
+                Tone.Transport.start(); // Ensure transport is running
+                musicPart.start(0);
+                musicToggleButton.textContent = '🔊';
+                backgroundMusicEnabled = true;
+                console.log("Music playing (Tone.js).");
+            }
+
+            // Clear inputs and options for all games before starting a new one
+            animalInput.value = '';
+            fruitInput.value = '';
+            colorInput.value = '';
+            vegetableInput.value = ''; // New: Clear vegetable input
+            clearOptions(); 
+
+            // Reset input and submit button states for all games when starting a new game
+            animalInput.disabled = false;
+            submitAnimalButton.style.display = 'inline-block';
+            fruitInput.disabled = false;
+            submitFruitButton.style.display = 'inline-block';
+            colorInput.disabled = false;
+            submitColorButton.style.display = 'inline-block';
+            vegetableInput.disabled = false; // New: Enable vegetable input
+            submitVegetableButton.style.display = 'inline-block'; // New: Show vegetable submit button
+
+            // Ensure message display is hidden when starting a new game
+            messageDisplayAnimal.style.display = 'none';
+            messageDisplayFruit.style.display = 'none';
+            messageDisplayColor.style.display = 'none';
+            messageDisplayVegetable.style.display = 'none'; // New: Hide vegetable message display
+
+
+            if (gameType === 'animals') {
+                animalGameScreen.style.display = 'flex';
+                fruitGameScreen.style.display = 'none';
+                colorGameScreen.style.display = 'none';
+                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
+                currentItems = animals;
+                animalInput.setAttribute('placeholder', 'Type animal name here...');
+                colorizeTitle(animalGameTitle, "Find the Animal Name!");
+                console.log("Started Animal Game. currentPlayingGame:", currentPlayingGame);
+            } else if (gameType === 'fruits') {
+                animalGameScreen.style.display = 'none';
+                fruitGameScreen.style.display = 'flex';
+                colorGameScreen.style.display = 'none';
+                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
+                currentItems = fruits;
+                fruitInput.setAttribute('placeholder', 'Type fruit name here...');
+                colorizeTitle(fruitGameTitle, "Find the Fruit Name!");
+                console.log("Started Fruit Game. currentPlayingGame:", currentPlayingGame);
+            } else if (gameType === 'colors') {
+                animalGameScreen.style.display = 'none';
+                fruitGameScreen.style.display = 'none';
+                colorGameScreen.style.display = 'flex';
+                vegetableGameScreen.style.display = 'none'; // Hide vegetable screen
+                currentItems = colors;
+                colorInput.setAttribute('placeholder', 'Type color name here...');
+                colorizeTitle(colorGameTitle, "Find the Color Name!");
+                console.log("Started Color Game. currentPlayingGame:", currentPlayingGame);
+            } else if (gameType === 'vegetables') { // New Vegetables Game logic
+                animalGameScreen.style.display = 'none';
+                fruitGameScreen.style.display = 'none';
+                colorGameScreen.style.display = 'none';
+                vegetableGameScreen.style.display = 'flex'; // Show vegetable screen
+                currentItems = vegetables;
+                vegetableInput.setAttribute('placeholder', 'Type vegetable name here...');
+                colorizeTitle(vegetableGameTitle, "Find the Vegetable Name!");
+                console.log("Started Vegetable Game. currentPlayingGame:", currentPlayingGame);
+            }
+            
+            score = 0;
+            currentItemIndex = 0;
+            shuffleArray(currentItems);
+            shuffledItems = [...currentItems];
+            loadNewItem();
+            console.log("Game started: Input enabled, submit button visible, options cleared.");
+        }
+
+        // Event Listeners
+        playAnimalsButton.addEventListener('click', () => startGame('animals'));
+        playFruitsButton.addEventListener('click', () => startGame('fruits'));
+        playColorsButton.addEventListener('click', () => startGame('colors'));
+        playVegetablesButton.addEventListener('click', () => startGame('vegetables')); // New event listener for Vegetables game
+        musicToggleButton.addEventListener('click', toggleBackgroundMusic);
+        submitAnimalButton.addEventListener('click', checkAnswer);
+        submitFruitButton.addEventListener('click', checkAnswer);
+        submitColorButton.addEventListener('click', checkAnswer);
+        submitVegetableButton.addEventListener('click', checkAnswer); // New event listener for Vegetable submit
+        
+        // Event listeners for the new "Back to Home" buttons
+        backToHomeAnimalButton.addEventListener('click', backToMainMenu);
+        backToHomeFruitButton.addEventListener('click', backToMainMenu);
+        backToHomeColorButton.addEventListener('click', backToMainMenu);
+        backToHomeVegetableButton.addEventListener('click', backToMainMenu); // New event listener for Vegetable back to home
+
+
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                // Only allow Enter key to submit if the text input is active AND the submit button is visible
+                // (i.e., not in multiple-choice mode)
+                if ((document.activeElement === animalInput && getSubmitButton() === submitAnimalButton && submitAnimalButton.style.display !== 'none') ||
+                    (document.activeElement === fruitInput && getSubmitButton() === submitFruitButton && submitFruitButton.style.display !== 'none') ||
+                    (document.activeElement === colorInput && getSubmitButton() === submitColorButton && submitColorButton.style.display !== 'none') ||
+                    (document.activeElement === vegetableInput && getSubmitButton() === submitVegetableButton && submitVegetableButton.style.display !== 'none')) { // New: Check for vegetable input
+                    checkAnswer();
+                }
+            }
+        });
+
+        giftBox.addEventListener('click', openGiftBox);
+
+        // Initial setup
+        window.onload = function() {
+            console.log("Window loaded. Initializing game.");
+            mainMenu.style.display = 'flex';
+            animalGameScreen.style.display = 'none';
+            fruitGameScreen.style.display = 'none';
+            colorGameScreen.style.display = 'none';
+            vegetableGameScreen.style.display = 'none'; // Ensure vegetable game screen is hidden on load
+            musicToggleButton.textContent = '🔇'; // Music off by default
+            backgroundMusicEnabled = false; // Set initial state
+            backgroundArt.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #A7D9F0 50%, #90EE90 50%, #B2EBF2 100%)'; // Default background on load
+
+            resetMessageDisplayStylingForElement(messageDisplayAnimal);
+            messageDisplayAnimal.style.display = 'none'; // Ensure hidden on initial load
+            resetMessageDisplayStylingForElement(messageDisplayFruit);
+            messageDisplayFruit.style.display = 'none'; // Ensure hidden on initial load
+            resetMessageDisplayStylingForElement(messageDisplayColor);
+            messageDisplayColor.style.display = 'none'; // Ensure hidden on initial load
+            resetMessageDisplayStylingForElement(messageDisplayVegetable); // New: Reset vegetable message display
+            messageDisplayVegetable.style.display = 'none'; // New: Ensure hidden on initial load
+
+            clearOptions(); // Ensure options are clear and hidden on initial load
+            console.log("Initial setup complete.");
+        };
+    </script>
+</body>
+</html>
